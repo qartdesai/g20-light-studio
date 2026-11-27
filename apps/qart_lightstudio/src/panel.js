@@ -26,7 +26,7 @@ class Panel {
     }
     stop() { this.selected = []; this.player.stop(); }
     status() {
-        const title = this.index < 0 ? 'Предпросмотр' : this.current.name + ' · шаг ' + (this.index + 1);
+        const title = this.index < 0 ? 'Предпросмотр' : this.player.pack.name + ' · шаг ' + (this.index + 1);
         const names = this.frame.map(id => channels.find(c => c.id === id).label);
         return this.note || title + '  |  ' + (names.join(', ') || 'Огни выключены');
     }
@@ -106,6 +106,9 @@ class Panel {
             go('‹ К шагам', 'edit');
         } else {
             add('Аварийка · предпросмотр', () => play(presets[0], false));
+            add('ФСО · демо 4 с', () => {
+                this.player.previewFso();
+            });
             go('Эффекты ›', 'presets');
             add('Число проходов без цикла · ' + this.count, () => {this.count = this.count % 3 + 1;});
             go('Ручной выбор огней ›', 'channels');

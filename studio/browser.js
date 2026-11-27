@@ -108,6 +108,13 @@ function on(id,fn) {
     $(id).onclick=async()=>{try{await fn();}catch(err){notify(err.message);}};
 }
 on('stop',stop);
+on('fso',()=>{
+    stop();
+    mode='sequence';
+    player.previewFso();
+    if(window.matchMedia('(max-width:760px)').matches) $('map').scrollIntoView({block:'start'});
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
 on('hazard',()=>{stop();$('scene').value='0';mode='sequence';run(false);});
 on('remove',()=>{
     const index=Number($('scene').value)-presets.length-bundledPacks.length;

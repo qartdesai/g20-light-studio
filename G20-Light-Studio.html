@@ -5,7 +5,7 @@ body{background:#f4f4f2;color:#202122;font-family:-apple-system,BlinkMacSystemFo
 </style>
 <header><div class="wordmark"><i aria-hidden="true"></i><h1>Light Studio</h1></div><span>BMW G20 · 318</span></header>
 <main><div><section class="sticky"><h2>Оптика</h2><small class="mode">Предпросмотр</small><canvas id="map" width="640" height="470" aria-label="Вид автомобиля сверху, передняя часть вверху"></canvas><div id="monitor"></div><div class="row"><button class="stop" id="stop">■ Стоп</button><span id="progress"></span></div></section></div>
-<div><nav aria-label="Раздел"><button id="tabScenes" aria-pressed="true">Сцены</button><button id="tabEdit" aria-pressed="false">Редактор</button></nav><section id="scenesPane"><h2>Световые сцены</h2><label class="field">Выбрать сцену<select id="scene"></select></label><div class="row"><button class="accent" id="play">▶ Проиграть</button></div><label class="slider">Скорость <output id="speedValue">1×</output><input id="speed" type="range" min="0.5" max="2" step="0.05" value="1"></label><div class="row"><label><input id="loop" type="checkbox" checked> Цикл</label><label>Проходов <select id="count"><option>1</option><option>2</option><option>3</option></select></label></div><div class="row"><button id="hazard">Аварийка</button><button id="remove">Удалить сохранённую сцену</button></div>
+<div><nav aria-label="Раздел"><button id="tabScenes" aria-pressed="true">Сцены</button><button id="tabEdit" aria-pressed="false">Редактор</button></nav><section id="scenesPane"><h2>Световые сцены</h2><label class="field">Выбрать сцену<select id="scene"></select></label><div class="row"><button class="accent" id="play">▶ Проиграть</button></div><label class="slider">Скорость <output id="speedValue">1×</output><input id="speed" type="range" min="0.5" max="2" step="0.05" value="1"></label><div class="row"><label><input id="loop" type="checkbox" checked> Цикл</label><label>Проходов <select id="count"><option>1</option><option>2</option><option>3</option></select></label></div><div class="row"><button id="hazard">Аварийка</button><button id="fso">ФСО · демо 4 с</button><button id="remove">Удалить сохранённую сцену</button></div>
 <details><summary>В такт музыке</summary><label class="field">Аудиофайл с устройства<input id="fileAudio" type="file" accept="audio/*"></label><audio id="track" controls></audio><p id="musicStatus">Выбери трек или переключай шаги вручную.</p><div class="row"><button id="sync">▶ Под музыку</button><button id="tap">Удар вручную</button></div></details></section>
 <section id="editPane" hidden><h2>Редактор сцены</h2><div class="row"><button id="copy">Загрузить выбранную сцену</button><button id="fresh">Новая сцена</button></div><label class="field">Название<input id="name" maxlength="60" value="Моя сцена"></label><details><summary>Огни для шага</summary><small>Количество сегментов в демопрофиле условное.</small><div class="bank" id="bank"></div></details><div class="row"><label class="slider">Длительность шага <output id="msValue">500 мс</output><input type="range" id="ms" min="100" max="10000" step="1" value="500"></label><button id="add">Добавить шаг</button><button id="clear">Снять выбор</button></div><small>Пустой шаг задаёт паузу. Кнопка «Выбрать» переносит шаг в редактор огней.</small><div id="steps"></div>
 <div class="row"><button class="accent" id="save">Сохранить сцену</button><button id="export">Скачать JSON</button></div><label class="field">Открыть сцену из JSON<input type="file" accept=".json,application/json" id="import"></label></section><p role="status" id="feedback"></p></div></main>
@@ -94,12 +94,17 @@ class Player {
         this.active = false;
         this.render([], -1);
     }
-    play(pack, options) {
+    previewFso() {
+        const frames = [['drl_l'], [], ['drl_r'], []];
+        this.play(scene('ФСО · демо', 500, frames.concat(frames)), {}, true);
+    }
+    play(pack, options, fixedPreview) {
         const ready = validate(pack);
         const settings = options || {};
         const speed = settings.speed === undefined ? 1 : settings.speed;
         if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) throw Error('Неизвестная скорость');
         this.stop();
+        this.fixedPreview = fixedPreview === true;
         this.pack = ready;
         this.loop = !!settings.loop;
         this.beats = !!settings.beats;
@@ -116,7 +121,7 @@ class Player {
         this.index++;
         if (this.index >= this.pack.steps.length) {
             this.passes++;
-            if (!this.loop && this.passes >= this.count) return this.stop();
+            if (this.fixedPreview || !this.loop && this.passes >= this.count) return this.stop();
             this.index = 0;
         }
         const step = this.pack.steps[this.index];
@@ -124,7 +129,7 @@ class Player {
         if (!this.beats) {
             const token = this.token;
             this.timer = this.clock.set(() => { if (token === this.token) this.next(); },
-                Math.round(step.ms / this.speed));
+                Math.round(step.ms / (this.fixedPreview ? 1 : this.speed)));
         }
     }
     beat() { if (this.active && this.beats) this.next(); }
@@ -268,6 +273,13 @@ function on(id,fn) {
     $(id).onclick=async()=>{try{await fn();}catch(err){notify(err.message);}};
 }
 on('stop',stop);
+on('fso',()=>{
+    stop();
+    mode='sequence';
+    player.previewFso();
+    if(window.matchMedia('(max-width:760px)').matches) $('map').scrollIntoView({block:'start'});
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
 on('hazard',()=>{stop();$('scene').value='0';mode='sequence';run(false);});
 on('remove',()=>{
     const index=Number($('scene').value)-presets.length-bundledPacks.length;

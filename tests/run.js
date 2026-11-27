@@ -45,3 +45,16 @@ manifest.modules.forEach(file=>assert(fs.existsSync(path.join(app,file))));
 const layout=require(app+'/package/rhmiData/uiDescriptions/ID7/uiDescription.json');
 assert(Object.values(layout.containers).some(s=>s.name==='STUDIO' && Object.values(s.components).some(c=>c.name==='OPTIONS')));
 console.log(channels.length+' channels, '+segments.length+' example segments, '+presets.length+' presets. Core, panel, audio and package tests passed.');
+
+const delays = [];
+let advance;
+const demo = new Player(()=>{}, {set:(fn,ms)=>{delays.push(ms);advance=fn;return 1;},clear:()=>{}});
+demo.previewFso();
+demo.loop=true; demo.count=3; demo.speed=2;
+for(let i=0;i<8;i++) advance();
+assert.strictEqual(demo.active,false);
+assert.deepStrictEqual(delays,Array(8).fill(500));
+demo.previewFso();
+demo.stop();
+advance();
+assert.strictEqual(demo.active,false);

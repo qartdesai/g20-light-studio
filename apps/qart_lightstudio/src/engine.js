@@ -81,12 +81,17 @@ class Player {
         this.active = false;
         this.render([], -1);
     }
-    play(pack, options) {
+    previewFso() {
+        const frames = [['drl_l'], [], ['drl_r'], []];
+        this.play(scene('ФСО · демо', 500, frames.concat(frames)), {}, true);
+    }
+    play(pack, options, fixedPreview) {
         const ready = validate(pack);
         const settings = options || {};
         const speed = settings.speed === undefined ? 1 : settings.speed;
         if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) throw Error('Неизвестная скорость');
         this.stop();
+        this.fixedPreview = fixedPreview === true;
         this.pack = ready;
         this.loop = !!settings.loop;
         this.beats = !!settings.beats;
@@ -103,7 +108,7 @@ class Player {
         this.index++;
         if (this.index >= this.pack.steps.length) {
             this.passes++;
-            if (!this.loop && this.passes >= this.count) return this.stop();
+            if (this.fixedPreview || !this.loop && this.passes >= this.count) return this.stop();
             this.index = 0;
         }
         const step = this.pack.steps[this.index];
@@ -111,7 +116,7 @@ class Player {
         if (!this.beats) {
             const token = this.token;
             this.timer = this.clock.set(() => { if (token === this.token) this.next(); },
-                Math.round(step.ms / this.speed));
+                Math.round(step.ms / (this.fixedPreview ? 1 : this.speed)));
         }
     }
     beat() { if (this.active && this.beats) this.next(); }
