@@ -81,7 +81,7 @@ const segmented = channels.filter(c => c.segment);
 class Player {
     constructor(render, clock) {
         this.render = render;
-        this.clock = clock || {set: setTimeout, clear: clearTimeout};
+        this.clock = clock || {set: (fn, ms) => setTimeout(fn, ms), clear: id => clearTimeout(id)};
         this.token = 0;
         this.timer = null;
         this.active = false;
