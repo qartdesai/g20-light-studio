@@ -12,7 +12,7 @@ try {
 let draft = {version:1,name:'Моя сцена',steps:[]};
 let selected = [];
 let active = [];
-let sounds = [], musicUrl = '', request = 0, raf = 0, beatIndex = 0, mode = 'idle';
+let sounds = [], musicUrl = '', request = 0, playback = 0, raf = 0, beatIndex = 0, mode = 'idle';
 const audio = $('track');
 const player = new Player((on,index) => {
     active = on;
@@ -53,6 +53,7 @@ function draw() {
     $('monitor').textContent=active.length?active.map(id=>channelNames.get(id)).join(' · '):'Огни выключены';
 }
 function stop() {
+    playback++;
     mode='idle'; cancelAnimationFrame(raf); audio.pause(); player.stop();
 }
 function manual() { stop(); active=selected.slice(); draw(); }
@@ -175,18 +176,24 @@ function alignMusic() {
     }
 }
 function animation() {
-    if(mode!=='music')return;
+    if(mode!=='music'||audio.paused)return;
     alignMusic();
     if(mode==='music'&&!audio.paused)raf=requestAnimationFrame(animation);
 }
-audio.onpause=()=>{if(mode==='music'){cancelAnimationFrame(raf);active=[];draw();}};
+audio.onpause=()=>{if(mode==='music'&&audio.paused){cancelAnimationFrame(raf);active=[];draw();}};
 audio.onplay=()=>{if(mode==='music'){beatIndex=-1;cancelAnimationFrame(raf);animation();}};
 audio.onseeked=()=>{if(mode==='music'&&!audio.paused)alignMusic();};
-audio.onended=()=>{if(mode==='music')stop();};
+audio.onended=()=>{if(mode==='music'&&audio.ended)stop();};
 on('sync',async()=>{
     if(!sounds.length)throw Error('Сначала выбери трек с различимым ритмом.');
     stop();audio.currentTime=0;beatIndex=-1;mode='music';run(true);
-    try{await audio.play();}catch(err){stop();throw err;}
+    const started = playback;
+    try { await audio.play(); }
+    catch (err) {
+        if (started !== playback) return;
+        stop();
+        throw err;
+    }
 });
 $('scene').onchange=stop;$('speed').onchange=()=>{player.speed=Number($('speed').value);};
 $('loop').onchange=()=>{player.loop=$('loop').checked;};
