@@ -1,0 +1,347 @@
+<!DOCTYPE html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>G20 Light Studio</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0a1217;color:#e7f0f2;font:16px/1.4 system-ui,sans-serif}header,main{max-width:1160px;margin:auto;padding:22px}header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid #34454a}h1{margin:0;font-size:clamp(23px,4vw,38px);letter-spacing:-.05em}h2{margin:0 0 12px;font-size:20px}h3{font-size:15px;color:#aec2c7}header span,small{color:#a8bbc0}main{display:grid;grid-template-columns:minmax(300px,.85fr) minmax(320px,1.15fr);gap:18px}section{background:#142229;border:1px solid #314148;border-radius:16px;padding:20px;margin-bottom:15px}label,button,select,input{font:inherit}button,select,input{background:#21333b;color:inherit;border:1px solid #485a61;border-radius:7px;padding:8px 10px}button,select{cursor:pointer}button:hover,button:focus-visible{border-color:#70e6c2}button[aria-pressed=true],.accent{background:#8defcb;color:#0c2820;border-color:#8defcb}.stop{border-color:#f3a794}.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0}.field{display:grid;gap:5px;margin:11px 0}.bank{display:grid;grid-template-columns:1fr 1fr;gap:5px}.bank button{text-align:left;font-size:13px}.line{border-top:1px solid #32454d;padding:8px 0}.line small{display:block}.line button{font-size:13px}canvas{display:block;width:100%;height:auto}.sticky{position:sticky;top:12px}.mode{color:#8defcb}#track{width:100%}#feedback{color:#ffd098;min-height:1.4em}#monitor{min-height:3em}details{margin:10px 0}summary{cursor:pointer}label input[type=checkbox]{accent-color:#8defcb}input[type=file]{max-width:100%;font-size:13px}@media(max-width:760px){main{display:block;padding:12px}.sticky{position:static}section{padding:14px}header{padding:15px}canvas{max-height:260px}}
+</style>
+<header><h1>G20 Light Studio</h1><span>318 · 2021</span></header>
+<main><div><section class="sticky"><h2>Схема оптики</h2><small class="mode">Симулятор · условное расположение каналов</small><canvas id="map" width="640" height="470" aria-label="Вид автомобиля сверху, передняя часть вверху"></canvas><div id="monitor"></div><div class="row"><button class="stop" id="stop">■ Стоп</button><span id="progress"></span></div></section></div>
+<div><section><h2>Сцены</h2><label class="field">Выбрать сцену<select id="scene"></select></label><div class="row"><button class="accent" id="play">▶ Проиграть</button><label>Скорость <select id="speed"><option>0.5</option><option selected>1</option><option>1.5</option><option>2</option></select> ×</label><label><input id="loop" type="checkbox" checked> Цикл</label><label>Проходов <select id="count"><option>1</option><option>2</option><option>3</option></select></label></div><div class="row"><button id="hazard">Аварийка</button><button id="remove">Удалить сохранённую сцену</button></div>
+<details><summary>В такт музыке</summary><label class="field">Аудиофайл с устройства<input id="fileAudio" type="file" accept="audio/*"></label><audio id="track" controls></audio><p id="musicStatus">Выбери трек или переключай шаги вручную.</p><div class="row"><button id="sync">▶ Под музыку</button><button id="tap">Удар вручную</button></div></details></section>
+<section><h2>Редактор сцены</h2><div class="row"><button id="copy">Загрузить выбранную сцену</button><button id="fresh">Новая сцена</button></div><label class="field">Название<input id="name" maxlength="60" value="Моя сцена"></label><details open><summary>Огни для шага</summary><small>Количество сегментов в демопрофиле условное.</small><div class="bank" id="bank"></div></details><div class="row"><label>Длина шага <input type="number" id="ms" min="100" max="10000" step="50" value="500" style="width:90px"> мс</label><button id="add">Добавить шаг</button><button id="clear">Снять выбор</button></div><small>Пустой шаг задаёт паузу. Кнопка «Выбрать» переносит шаг в редактор огней.</small><div id="steps"></div>
+<div class="row"><button class="accent" id="save">Сохранить сцену</button><button id="export">Скачать JSON</button></div><label class="field">Открыть сцену из JSON<input type="file" accept=".json,application/json" id="import"></label><p role="status" id="feedback"></p></section></div></main>
+<script>
+const LightStudio = (function(){const module={exports:{}};
+'use strict';
+
+const PAIRS = [
+    ['drl', 'ДХО'], ['low', 'Ближний свет'], ['high', 'Дальний свет'],
+    ['front_turn', 'Передний поворотник'], ['fog', 'Передняя ПТФ'],
+    ['mirror', 'Поворотник зеркала'], ['puddle', 'Подсветка у двери'],
+    ['welcome', 'Приветственный свет'], ['tail', 'Габарит сзади'],
+    ['rear_turn', 'Задний поворотник'], ['brake', 'Стоп-сигнал'],
+    ['reverse', 'Задний ход'], ['rear_fog', 'Задняя ПТФ']
+];
+const channels = [];
+PAIRS.forEach(pair => ['l', 'r'].forEach(side => channels.push({
+    id: pair[0] + '_' + side, label: pair[1] + (side === 'l' ? ' · Л' : ' · П')
+})));
+channels.push({id: 'center_stop', label: 'Центральный стоп'}, {id: 'plate', label: 'Номерной знак'});
+const extra = [
+    ['handle_fl','Ручка · передняя левая',212,202], ['handle_fr','Ручка · передняя правая',428,202],
+    ['handle_rl','Ручка · задняя левая',212,291], ['handle_rr','Ручка · задняя правая',428,291],
+    ['plate_l','Номер · левая лампа',306,420], ['plate_r','Номер · правая лампа',334,420]
+];
+extra.forEach(c => channels.push({id:c[0],label:c[1],x:c[2],y:c[3]}));
+channels.push.apply(channels, [{"id":"seg_headlamp_l_1","label":"Левая фара · 1","zone":"front","segment":true,"x":233,"y":62},{"id":"seg_headlamp_l_2","label":"Левая фара · 2","zone":"front","segment":true,"x":240,"y":62},{"id":"seg_headlamp_l_3","label":"Левая фара · 3","zone":"front","segment":true,"x":247,"y":62},{"id":"seg_headlamp_r_1","label":"Правая фара · 1","zone":"front","segment":true,"x":393,"y":62},{"id":"seg_headlamp_r_2","label":"Правая фара · 2","zone":"front","segment":true,"x":400,"y":62},{"id":"seg_headlamp_r_3","label":"Правая фара · 3","zone":"front","segment":true,"x":407,"y":62},{"id":"seg_brake_outer_l_1","label":"Стоп левый наружный · 1","zone":"rear","segment":true,"x":225.5,"y":399},{"id":"seg_brake_outer_l_2","label":"Стоп левый наружный · 2","zone":"rear","segment":true,"x":232.5,"y":399},{"id":"seg_brake_inner_l_1","label":"Стоп левый внутренний · 1","zone":"rear","segment":true,"x":276.5,"y":399},{"id":"seg_brake_inner_l_2","label":"Стоп левый внутренний · 2","zone":"rear","segment":true,"x":283.5,"y":399},{"id":"seg_brake_outer_r_1","label":"Стоп правый наружный · 1","zone":"rear","segment":true,"x":407.5,"y":399},{"id":"seg_brake_outer_r_2","label":"Стоп правый наружный · 2","zone":"rear","segment":true,"x":414.5,"y":399},{"id":"seg_brake_inner_r_1","label":"Стоп правый внутренний · 1","zone":"rear","segment":true,"x":356.5,"y":399},{"id":"seg_brake_inner_r_2","label":"Стоп правый внутренний · 2","zone":"rear","segment":true,"x":363.5,"y":399},{"id":"seg_brake_center_1","label":"Центральный стоп · 1","zone":"rear","segment":true,"x":313,"y":343},{"id":"seg_brake_center_2","label":"Центральный стоп · 2","zone":"rear","segment":true,"x":320,"y":343},{"id":"seg_brake_center_3","label":"Центральный стоп · 3","zone":"rear","segment":true,"x":327,"y":343}]);
+const hazards = ['front_turn_l','front_turn_r','mirror_l','mirror_r','rear_turn_l','rear_turn_r'];
+const ids = channels.map(c => c.id);
+if (new Set(ids).size !== ids.length) throw Error('Повтор ID в профиле');
+
+function validate(pack) {
+    if (!pack || pack.version !== 1 || typeof pack.name !== 'string' ||
+        !pack.name.trim() || pack.name.length > 60 || !Array.isArray(pack.steps) ||
+        !pack.steps.length || pack.steps.length > 128) throw Error('Нужны название и 1–128 шагов.');
+    const steps = pack.steps.map(step => {
+        if (!step || !Number.isInteger(step.ms) || step.ms < 100 || step.ms > 10000 ||
+            !Array.isArray(step.on) || step.on.length > ids.length ||
+            step.on.some(id => ids.indexOf(id) < 0) || new Set(step.on).size !== step.on.length)
+            throw Error('Проверь каналы и длительность шага (100–10 000 мс).');
+        return {ms: step.ms, on: step.on.slice()};
+    });
+    return {version: 1, name: pack.name.trim(), steps: steps};
+}
+function scene(name, ms, frames) {
+    return validate({version: 1, name: name, steps: frames.map(on => ({ms: ms, on: on}))});
+}
+const presets = [
+    scene('Аварийка', 500, [hazards, []]),
+    scene('Перекличка ДХО', 500, [['drl_l'], ['drl_r']]),
+    scene('Двойной импульс', 220, [['drl_l','drl_r'], [], ['drl_l','drl_r'], [], [], []]),
+    scene('По периметру', 380, [['front_turn_l'], ['mirror_l'], ['rear_turn_l'], ['rear_turn_r'], ['mirror_r'], ['front_turn_r']]),
+    scene('Встреча', 850, [['puddle_l','puddle_r'], ['welcome_l','welcome_r'], ['drl_l','drl_r','tail_l','tail_r'], []]),
+    scene('Диагональ', 600, [['drl_l','tail_r'], ['drl_r','tail_l']]),
+    scene('Задняя волна', 450, [['tail_l'], ['tail_l','tail_r'], ['tail_r'], []])
+];
+const pairs = [
+    ['drl','ДХО'], ['front_turn','Передние поворотники'], ['tail','Задние габариты'],
+    ['rear_turn','Задние поворотники'], ['fog','Передние ПТФ'], ['puddle','Подсветка дверей'],
+    ['low','Ближний свет'], ['brake','Стопы']
+];
+pairs.forEach(pair => {
+    const l = pair[0] + '_l', r = pair[0] + '_r';
+    presets.push(scene(pair[1] + ' · чередование', 450, [[l], [], [r], []]));
+    presets.push(scene(pair[1] + ' · вместе', 400, [[l,r], []]));
+});
+presets.push(scene('Ручки · по кругу', 500, [['handle_fl'],['handle_fr'],['handle_rr'],['handle_rl']]));
+const segmented = channels.filter(c => c.segment);
+['front','rear'].forEach(zone => {
+    const parts = segmented.filter(c => c.zone === zone);
+    if (parts.length) presets.push(scene(zone === 'front' ? 'Перед · по одному сегменту' :
+        'Стопы · по одному сегменту', 600, parts.slice(0,128).map(c => [c.id])));
+});
+class Player {
+    constructor(render, clock) {
+        this.render = render;
+        this.clock = clock || {set: setTimeout, clear: clearTimeout};
+        this.token = 0;
+        this.timer = null;
+        this.active = false;
+    }
+    stop() {
+        this.token++;
+        if (this.timer !== null) this.clock.clear(this.timer);
+        this.timer = null;
+        this.active = false;
+        this.render([], -1);
+    }
+    play(pack, options) {
+        const ready = validate(pack);
+        const settings = options || {};
+        const speed = settings.speed === undefined ? 1 : settings.speed;
+        if (![0.5, 1, 1.5, 2].includes(speed)) throw Error('Неизвестная скорость');
+        this.stop();
+        this.pack = ready;
+        this.loop = !!settings.loop;
+        this.beats = !!settings.beats;
+        this.speed = speed;
+        this.index = -1;
+        this.passes = 0;
+        this.count = settings.count || 1;
+        if (![1,2,3].includes(this.count)) throw Error('Число повторов: 1, 2, 3');
+        this.active = true;
+        this.next();
+    }
+    next() {
+        if (!this.active) return;
+        this.index++;
+        if (this.index >= this.pack.steps.length) {
+            this.passes++;
+            if (!this.loop && this.passes >= this.count) return this.stop();
+            this.index = 0;
+        }
+        const step = this.pack.steps[this.index];
+        this.render(step.on.slice(), this.index);
+        if (!this.beats) {
+            const token = this.token;
+            this.timer = this.clock.set(() => { if (token === this.token) this.next(); },
+                Math.round(step.ms / this.speed));
+        }
+    }
+    beat() { if (this.active && this.beats) this.next(); }
+}
+module.exports = {channels, hazards, presets, validate, Player};
+
+return module.exports;})();
+const bundledPacks=[];
+'use strict';
+// Detect amplitude onsets from decoded PCM. Report times in seconds to follow the audio clock.
+function detectOnsets(buffer) {
+    const hop = Math.max(1, Math.round(buffer.sampleRate * 0.02));
+    const left = buffer.getChannelData(0);
+    const right = buffer.getChannelData(buffer.numberOfChannels > 1 ? 1 : 0);
+    const times = [];
+    let baseline = 0, previous = 0, last = -1;
+    for (let start = 0; start < left.length; start += hop) {
+        let sum = 0;
+        const end = Math.min(start + hop, left.length);
+        for (let i = start; i < end; i++) sum += left[i]*left[i] + right[i]*right[i];
+        const energy = Math.sqrt(sum / (2 * (end - start)));
+        const time = start / buffer.sampleRate;
+        if (energy > 0.016 && energy > baseline * 1.35 && energy - previous > 0.008 && time-last >= 0.19) {
+            times.push(time);
+            last = time;
+        }
+        baseline = 0.91 * baseline + 0.09 * energy;
+        previous = energy;
+    }
+    return times;
+}
+if (typeof module !== 'undefined') module.exports = {detectOnsets};
+
+'use strict';
+const $ = id => document.getElementById(id);
+const {channels, presets, validate, Player} = LightStudio;
+const channelNames = new Map(channels.map(c => [c.id,c.label]));
+const notify = text => { $('feedback').textContent = text; };
+const copy = value => JSON.parse(JSON.stringify(value));
+let saved = [];
+try {
+    const data = JSON.parse(localStorage.getItem('lightstudio.scenes.v1') || '[]');
+    if (Array.isArray(data)) saved = data.map(validate);
+} catch (err) { notify('Локальные сцены не удалось прочитать. Доступен импорт JSON.'); }
+let draft = {version:1,name:'Моя сцена',steps:[]};
+let selected = [];
+let active = [];
+let sounds = [], musicUrl = '', request = 0, raf = 0, beatIndex = 0, mode = 'idle';
+const audio = $('track');
+const player = new Player((on,index) => {
+    active = on;
+    $('progress').textContent = index < 0 ? '' : 'Шаг ' + (index+1) + ' / ' + player.pack.steps.length;
+    draw();
+});
+function draw() {
+    const ctx = $('map').getContext('2d');
+    ctx.clearRect(0,0,640,470);
+    ctx.fillStyle = '#0c191f'; ctx.fillRect(0,0,640,470);
+    ctx.strokeStyle = '#294049'; ctx.lineWidth = 1;
+    for (let i=20;i<640;i+=40) {ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,470);ctx.stroke();}
+    for (let i=20;i<470;i+=40) {ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(640,i);ctx.stroke();}
+    function shape(points,fill,stroke) {
+        ctx.beginPath();points.forEach((p,i) => i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]));
+        ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();
+    }
+    shape([[250,44],[390,44],[422,76],[433,162],[431,360],[416,416],[389,432],[251,432],[224,416],[209,359],[207,162],[218,76]],'#22363f','#72909c');
+    shape([[250,145],[390,145],[378,192],[262,192]],'#102129','#506975');
+    shape([[260,310],[380,310],[394,353],[246,353]],'#102129','#506975');
+    const coords={drl:[246,67],low:[265,85],high:[288,84],front_turn:[228,97],fog:[224,121],
+        mirror:[194,172],puddle:[208,220],welcome:[213,274],tail:[244,392],rear_turn:[224,371],
+        brake:[270,405],reverse:[289,386],rear_fog:[230,414],center_stop:[320,351],plate:[320,410]};
+    channels.forEach(channel => {
+        const side=channel.id.slice(-2), paired=side==='_l'||side==='_r';
+        const family=paired?channel.id.slice(0,-2):channel.id;
+        let x=channel.x, y=channel.y;
+        if(x===undefined){[x,y]=coords[family];if(side==='_r')x=640-x;}
+        const lit=active.includes(channel.id);
+        const color=family.includes('turn')||family==='mirror'?'#ffbc4b':
+            ['tail','brake','center_stop','rear_fog'].includes(family)?'#ff766e':'#a2ffdf';
+        ctx.save();ctx.fillStyle=lit?color:'#465963';ctx.shadowColor=color;ctx.shadowBlur=lit?14:0;
+        if(channel.segment)ctx.fillRect(x-2,y-2,5,5);else ctx.fillRect(x-8,y-4,16,8);ctx.restore();
+    });
+    ctx.fillStyle='#9cb5bf';ctx.font='15px system-ui';ctx.textAlign='center';
+    ctx.fillText('ПЕРЕД',320,26);ctx.fillText('ЗАД',320,458);
+    $('monitor').textContent=active.length?active.map(id=>channelNames.get(id)).join(' · '):'Огни выключены';
+}
+function stop() {
+    mode='idle'; cancelAnimationFrame(raf); audio.pause(); player.stop();
+}
+function manual() { stop(); active=selected.slice(); draw(); }
+function scenes() { return presets.concat(bundledPacks, saved); }
+function library(index) {
+    $('scene').replaceChildren();
+    scenes().forEach((p,i)=>$('scene').add(new Option(p.name,String(i))));
+    $('scene').value=String(index||0);
+}
+function button(label,run) {
+    const b=document.createElement('button');b.textContent=label;
+    b.onclick=()=>{try {run();} catch(err){notify(err.message);}};return b;
+}
+function bank() {
+    $('bank').replaceChildren();
+    channels.forEach(c=>{
+        const b=button(c.label,()=>{
+            selected=selected.includes(c.id)?selected.filter(id=>id!==c.id):selected.concat(c.id);
+            manual();bank();
+        });
+        b.setAttribute('aria-pressed',String(selected.includes(c.id)));$('bank').append(b);
+    });
+}
+function stepInput() {
+    const ms=Number($('ms').value);
+    return validate({version:1,name:'Шаг',steps:[{ms:ms,on:selected}]}).steps[0];
+}
+function timeline() {
+    $('steps').replaceChildren();
+    draft.steps.forEach((s,i)=>{
+        const row=document.createElement('div');row.className='line';
+        const title=document.createElement('strong');title.textContent=(i+1)+'. '+s.ms+' мс';
+        const lights=document.createElement('small');lights.textContent=s.on.map(id=>channelNames.get(id)).join(' · ')||'Пауза';
+        const actions=document.createElement('div');actions.className='row';
+        actions.append(button('Выбрать',()=>{selected=s.on.slice();$('ms').value=s.ms;manual();bank();}),
+            button('Заменить',()=>{draft.steps[i]=stepInput();timeline();}));
+        if(i>0) actions.append(button('↑',()=>{draft.steps.splice(i-1,0,draft.steps.splice(i,1)[0]);timeline();}));
+        if(i+1<draft.steps.length) actions.append(button('↓',()=>{draft.steps.splice(i+1,0,draft.steps.splice(i,1)[0]);timeline();}));
+        actions.append(button('Удалить',()=>{draft.steps.splice(i,1);timeline();}));
+        row.append(title,lights,actions);$('steps').append(row);
+    });
+}
+function edit(pack) {
+    stop();draft=copy(pack);$('name').value=draft.name;selected=[];bank();timeline();
+}
+const chosen=()=>scenes()[Number($('scene').value)];
+function currentDraft() { return validate({version:1,name:$('name').value,steps:draft.steps}); }
+function run(beats) {
+    player.play(chosen(),{speed:Number($('speed').value),loop:$('loop').checked,count:Number($('count').value),beats:beats});
+}
+function on(id,fn) {
+    $(id).onclick=async()=>{try{await fn();}catch(err){notify(err.message);}};
+}
+on('stop',stop);
+on('hazard',()=>{stop();$('scene').value='0';mode='sequence';run(false);});
+on('remove',()=>{
+    const index=Number($('scene').value)-presets.length-bundledPacks.length;
+    if(index<0)throw Error('Удаление доступно для своих сохранённых сцен.');
+    const next=saved.filter((p,i)=>i!==index);
+    localStorage.setItem('lightstudio.scenes.v1',JSON.stringify(next));stop();saved=next;library();notify('Сцена удалена.');
+});
+on('play',()=>{stop();mode='sequence';run(false);});
+on('tap',()=>{if(mode!=='tap'||!player.active){stop();mode='tap';run(true);}else player.beat();});
+on('copy',()=>edit(chosen()));
+on('fresh',()=>edit({version:1,name:'Моя сцена',steps:[]}));
+on('clear',()=>{selected=[];manual();bank();});
+on('add',()=>{if(draft.steps.length>=128)throw Error('Лимит 128 шагов');draft.steps.push(stepInput());timeline();});
+on('save',()=>{
+    const pack=currentDraft();
+    const next=saved.filter(p=>p.name!==pack.name).concat(pack);
+    localStorage.setItem('lightstudio.scenes.v1',JSON.stringify(next));saved=next;
+    library(scenes().length-1);notify('Сцена сохранена на этом устройстве.');
+});
+on('export',()=>{
+    const pack=currentDraft(), a=document.createElement('a');
+    const url=URL.createObjectURL(new Blob([JSON.stringify(pack,null,2)],{type:'application/json'}));
+    a.href=url;a.download='g20-scene.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+});
+$('import').onchange=async e=>{
+    try {
+        const file=e.target.files[0];if(!file)return;
+        if(file.size>256*1024)throw Error('Файл больше 256 КБ.');
+        const pack=validate(JSON.parse(await file.text()));edit(pack);notify('Сцена загружена в редактор.');
+    }catch(err){notify(err.message);}finally{e.target.value='';}
+};
+$('fileAudio').onchange=async e=>{
+    const serial=++request;stop();sounds=[];
+    if(musicUrl) URL.revokeObjectURL(musicUrl);
+    musicUrl='';audio.removeAttribute('src');audio.load();
+    const file=e.target.files[0];if(!file)return;
+    let context;
+    try {
+        if(file.size>50*1024*1024)throw Error('Выбери аудиофайл до 50 МБ.');
+        $('musicStatus').textContent='Ищу удары в треке…';
+        context=new (window.AudioContext||window.webkitAudioContext)();
+        const decoded=await context.decodeAudioData(await file.arrayBuffer());
+        if(serial!==request)return;
+        sounds=detectOnsets(decoded);
+        musicUrl=URL.createObjectURL(file);audio.src=musicUrl;
+        $('musicStatus').textContent='Ударов в треке: '+sounds.length;
+    }catch(err){if(serial===request)$('musicStatus').textContent=err.message;}
+    finally{if(context)await context.close();}
+};
+function alignMusic() {
+    const now=audio.currentTime;
+    let lo=0,hi=sounds.length;
+    while(lo<hi){const mid=(lo+hi)>>1;if(sounds[mid]<=now)lo=mid+1;else hi=mid;}
+    if(lo!==beatIndex || !player.active) {
+        beatIndex=lo;
+        if(!player.loop && lo>=player.pack.steps.length*player.count){stop();return;}
+        const i=lo%player.pack.steps.length;player.index=i;player.render(player.pack.steps[i].on,i);
+    }
+}
+function animation() {
+    if(mode!=='music')return;
+    alignMusic();
+    if(mode==='music'&&!audio.paused)raf=requestAnimationFrame(animation);
+}
+audio.onpause=()=>{if(mode==='music'){cancelAnimationFrame(raf);active=[];draw();}};
+audio.onplay=()=>{if(mode==='music'){beatIndex=-1;cancelAnimationFrame(raf);animation();}};
+audio.onseeked=()=>{if(mode==='music'&&!audio.paused)alignMusic();};
+audio.onended=()=>{if(mode==='music')stop();};
+on('sync',async()=>{
+    if(!sounds.length)throw Error('Сначала выбери трек с различимым ритмом.');
+    stop();audio.currentTime=0;beatIndex=-1;mode='music';run(true);
+    try{await audio.play();}catch(err){stop();throw err;}
+});
+$('scene').onchange=stop;$('speed').onchange=()=>{player.speed=Number($('speed').value);};
+$('loop').onchange=()=>{player.loop=$('loop').checked;};
+window.addEventListener('pagehide',stop);
+library();bank();timeline();draw();
+
+</script>
+</html>

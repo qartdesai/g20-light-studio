@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.3.0",
+  "application": {
+    "uuid": "f5b0be9a-61c9-5bc0-9eff-8d593a8abf36",
+    "type": "OnlineApp",
+    "name": "qart_lightstudio",
+    "vendor": "qartdesai",
+    "version": "0.1.0",
+    "defaultLanguage": "en_GB",
+    "stringBundleUuid": "49d8150e-dc73-53ad-b653-42e609a0d1ac",
+    "resourceBundleUuid": "56007c40-b4a4-5a5b-a6da-3420543365fb",
+    "uiDescriptions": [
+      {
+        "applicationFilePath": "./uiDescriptions/ID7/application.xml",
+        "uiDescriptionFilePath": "./uiDescriptions/ID7/uiDescription.json",
+        "hmi": [
+          "ID7"
+        ]
+      }
+    ],
+    "variantGroups": [
+      {
+        "stringsPath": "./variantGroups/Common/texts",
+        "resourcesPath": "./variantGroups/Common/images",
+        "hmi": [
+          "ID7"
+        ],
+        "brands": [
+          "BMW"
+        ]
+      }
+    ],
+    "entryPoints": [
+      {
+        "name": "QART_LIGHT_STUDIO",
+        "uuid": "3b384153-0f44-52b0-a693-8a2012074fce",
+        "textId": "SID_QART_LIGHTSTUDIO_TITLE",
+        "icon": "light.png",
+        "insertionStateId": 20974,
+        "insertionFocusId": 2,
+        "insertionMode": "INSERT_BELOW",
+        "insertionOrder": 0,
+        "insertionPriority": 0,
+        "previewType": "NONE",
+        "bookmarkable": true,
+        "private": false,
+        "appearance": "DEFAULT",
+        "isGroupHeader": false,
+        "insertionGroup": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "qart_lightstudio",
+  "version": "0.1.0",
+  "description": "Offline exterior light scene editor and simulator for BMW G20.",
+  "main": "javascript/runner.js",
+  "author": "qartdesai",
+  "mguHmi": [
+    "ID7"
+  ],
+  "engines": {
+    "node": ">=8.7.0"
+  },
+  "oapAppSettings": {
+    "maxDiskUsage": 2097152,
+    "cpuLimit": 25,
+    "memoryThresholdKB": 131072,
+    "priority": "PRIO_LOW",
+    "visibility": "FOREGROUND",
+    "latencyClass": "FOREGROUND",
+    "loggingId": "QLST",
+    "userLoginRequired": false,
+    "backgroundPriority": 200,
+    "someipManifest": "manifest.json"
+  },
+  "files": [
+    "package.json",
+    "manifest.json",
+    "permissions.json",
+    "config",
+    "rhmiData",
+    "javascript",
+    "npm-shrinkwrap.json"
+  ]
+}

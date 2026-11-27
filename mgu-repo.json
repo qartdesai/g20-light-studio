@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "components": [
+    {
+      "id": "qart_lightstudio",
+      "kind": "app",
+      "path": "apps/qart_lightstudio",
+      "build": "unit",
+      "title": "G20 Light Studio",
+      "description": "Offline exterior light scene editor and simulator for BMW G20.",
+      "mguHmi": [
+        "ID7"
+      ],
+      "texts": {
+        "ru": {
+          "title": "G20 Light Studio",
+          "description": "Редактор и предпросмотр сцен внешней оптики G20."
+        }
+      }
+    }
+  ]
+}

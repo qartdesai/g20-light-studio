@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "qart_lightstudio",
+  "version": "0.1.0",
+  "mguHmi": [
+    "ID7"
+  ],
+  "tree": "package",
+  "modules": [
+    "src/headunit.js",
+    "src/engine.js",
+    "src/panel.js",
+    "src/packs.js",
+    "src/segments.js"
+  ],
+  "sdk": [
+    "oap-sdk/src/core/OnlineApp.js"
+  ]
+}

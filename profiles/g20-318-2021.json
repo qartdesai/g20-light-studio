@@ -1,0 +1,13 @@
+{
+  "vehicle": "BMW G20 318 · 2021",
+  "status": "simulation",
+  "assemblies": [
+    {"id":"headlamp_l","label":"Левая фара","zone":"front","x":240,"y":62,"segments":3},
+    {"id":"headlamp_r","label":"Правая фара","zone":"front","x":400,"y":62,"segments":3},
+    {"id":"brake_outer_l","label":"Стоп левый наружный","zone":"rear","x":229,"y":399,"segments":2},
+    {"id":"brake_inner_l","label":"Стоп левый внутренний","zone":"rear","x":280,"y":399,"segments":2},
+    {"id":"brake_outer_r","label":"Стоп правый наружный","zone":"rear","x":411,"y":399,"segments":2},
+    {"id":"brake_inner_r","label":"Стоп правый внутренний","zone":"rear","x":360,"y":399,"segments":2},
+    {"id":"brake_center","label":"Центральный стоп","zone":"rear","x":320,"y":343,"segments":3}
+  ]
+}
