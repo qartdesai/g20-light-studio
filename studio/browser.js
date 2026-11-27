@@ -101,6 +101,7 @@ const chosen=()=>scenes()[Number($('scene').value)];
 function currentDraft() { return validate({version:1,name:$('name').value,steps:draft.steps}); }
 function run(beats) {
     player.play(chosen(),{speed:Number($('speed').value),loop:$('loop').checked,count:Number($('count').value),beats:beats});
+    if (window.matchMedia('(max-width:760px)').matches) $('map').scrollIntoView({block:'start'});
 }
 function on(id,fn) {
     $(id).onclick=async()=>{try{await fn();}catch(err){notify(err.message);}};
