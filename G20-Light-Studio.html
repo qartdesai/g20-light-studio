@@ -1,13 +1,14 @@
 <!DOCTYPE html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>G20 Light Studio</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#0a1217;color:#e7f0f2;font:16px/1.4 system-ui,sans-serif}header,main{max-width:1160px;margin:auto;padding:22px}header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid #34454a}h1{margin:0;font-size:clamp(23px,4vw,38px);letter-spacing:-.05em}h2{margin:0 0 12px;font-size:20px}h3{font-size:15px;color:#aec2c7}header span,small{color:#a8bbc0}main{display:grid;grid-template-columns:minmax(300px,.85fr) minmax(320px,1.15fr);gap:18px}section{background:#142229;border:1px solid #314148;border-radius:16px;padding:20px;margin-bottom:15px}label,button,select,input{font:inherit}button,select,input{background:#21333b;color:inherit;border:1px solid #485a61;border-radius:7px;padding:8px 10px}button,select{cursor:pointer}button:hover,button:focus-visible{border-color:#70e6c2}button[aria-pressed=true],.accent{background:#8defcb;color:#0c2820;border-color:#8defcb}.stop{border-color:#f3a794}.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0}.field{display:grid;gap:5px;margin:11px 0}.bank{display:grid;grid-template-columns:1fr 1fr;gap:5px}.bank button{text-align:left;font-size:13px}.line{border-top:1px solid #32454d;padding:8px 0}.line small{display:block}.line button{font-size:13px}canvas{display:block;width:100%;height:auto}.sticky{position:sticky;top:12px}.mode{color:#8defcb}#track{width:100%}#feedback{color:#ffd098;min-height:1.4em}#monitor{min-height:3em}details{margin:10px 0}summary{cursor:pointer}label input[type=checkbox]{accent-color:#8defcb}input[type=file]{max-width:100%;font-size:13px}@media(max-width:760px){main{display:block;padding:12px}.sticky{position:static}section{padding:14px}header{padding:15px}canvas{max-height:260px}}
+body{background:#f4f4f2;color:#202122;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}header,main{max-width:1180px}header{border:0;padding:28px 24px 18px;align-items:center}.wordmark{display:flex;align-items:center;gap:12px}.wordmark i{width:27px;height:22px;border-radius:6px;background:repeating-linear-gradient(115deg,#202122 0 4px,transparent 4px 7px)}h1{font-size:25px;letter-spacing:-.06em}header span,small{color:#666969}main{grid-template-columns:1.12fr 1fr;gap:26px}section{background:#fff;border:0;border-radius:26px;padding:26px;box-shadow:0 3px 18px #16161505}h2{font-size:27px;letter-spacing:-.055em;font-weight:620}button,select,input{background:#f0f0ee;color:#242525;border:0;border-radius:12px;padding:12px 14px;min-height:44px}button:hover{background:#dfdfda}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #4787d1;outline-offset:2px}button.accent,button[aria-pressed=true]{background:#202122;color:white}.sticky{background:#171819;color:#fafafa;overflow:hidden}.sticky h2{margin-bottom:0}.mode{color:#aaaead}#map{margin:4px 0;max-height:365px;object-fit:contain}#monitor{font-size:14px;color:#c4c6c5;min-height:1.6em}.stop{background:#343737;color:white}.stop:hover{background:#484b4b}#progress{font-variant-numeric:tabular-nums;font-size:13px;color:#bbb}.slider{display:grid;width:100%;grid-template-columns:1fr auto;align-items:center;margin:14px 0;font-weight:550}.slider output{font-size:15px;font-variant-numeric:tabular-nums;color:#595c5a}.slider input{grid-column:1/-1;width:100%;appearance:none;background:transparent;padding:0;cursor:pointer;--fill:33%}.slider input::-webkit-slider-runnable-track{height:5px;border-radius:8px;background:linear-gradient(to right,#262829 var(--fill),#dadcda var(--fill))}.slider input::-webkit-slider-thumb{appearance:none;width:25px;height:25px;margin-top:-10px;border-radius:50%;background:white;box-shadow:0 1px 5px #0004;border:1px solid #ddd}.slider input::-moz-range-track{height:5px;background:#d5d6d4}.slider input::-moz-range-progress{background:#292b2a}nav{display:flex;background:#e5e5e2;border-radius:16px;padding:4px;margin-bottom:14px}nav button{flex:1;background:transparent}nav button[aria-pressed=true]{background:white;color:#151616;box-shadow:0 1px 5px #0001}.field,summary{font-weight:520}summary{padding:10px 0}.line,details{border-top:1px solid #dedfdd}.bank{gap:6px}#feedback{color:#815319}.row{gap:9px}.field select{width:100%}label input[type=checkbox]{accent-color:#333;min-height:0}#play{width:100%}#remove{font-size:13px}#remove:disabled{display:none}@media(max-width:760px){header{padding:18px 18px 8px}main{padding:12px}section{padding:19px;border-radius:21px}#map{height:210px}.sticky .row{margin-bottom:0}h2{font-size:24px}nav{position:sticky;top:4px;z-index:1}select,input{max-width:100%}}
 </style>
-<header><h1>G20 Light Studio</h1><span>318 · 2021</span></header>
-<main><div><section class="sticky"><h2>Схема оптики</h2><small class="mode">Симулятор · условное расположение каналов</small><canvas id="map" width="640" height="470" aria-label="Вид автомобиля сверху, передняя часть вверху"></canvas><div id="monitor"></div><div class="row"><button class="stop" id="stop">■ Стоп</button><span id="progress"></span></div></section></div>
-<div><section><h2>Сцены</h2><label class="field">Выбрать сцену<select id="scene"></select></label><div class="row"><button class="accent" id="play">▶ Проиграть</button><label>Скорость <select id="speed"><option>0.5</option><option selected>1</option><option>1.5</option><option>2</option></select> ×</label><label><input id="loop" type="checkbox" checked> Цикл</label><label>Проходов <select id="count"><option>1</option><option>2</option><option>3</option></select></label></div><div class="row"><button id="hazard">Аварийка</button><button id="remove">Удалить сохранённую сцену</button></div>
+<header><div class="wordmark"><i aria-hidden="true"></i><h1>Light Studio</h1></div><span>BMW G20 · 318</span></header>
+<main><div><section class="sticky"><h2>Оптика</h2><small class="mode">Предпросмотр</small><canvas id="map" width="640" height="470" aria-label="Вид автомобиля сверху, передняя часть вверху"></canvas><div id="monitor"></div><div class="row"><button class="stop" id="stop">■ Стоп</button><span id="progress"></span></div></section></div>
+<div><nav aria-label="Раздел"><button id="tabScenes" aria-pressed="true">Сцены</button><button id="tabEdit" aria-pressed="false">Редактор</button></nav><section id="scenesPane"><h2>Световые сцены</h2><label class="field">Выбрать сцену<select id="scene"></select></label><div class="row"><button class="accent" id="play">▶ Проиграть</button></div><label class="slider">Скорость <output id="speedValue">1×</output><input id="speed" type="range" min="0.5" max="2" step="0.05" value="1"></label><div class="row"><label><input id="loop" type="checkbox" checked> Цикл</label><label>Проходов <select id="count"><option>1</option><option>2</option><option>3</option></select></label></div><div class="row"><button id="hazard">Аварийка</button><button id="remove">Удалить сохранённую сцену</button></div>
 <details><summary>В такт музыке</summary><label class="field">Аудиофайл с устройства<input id="fileAudio" type="file" accept="audio/*"></label><audio id="track" controls></audio><p id="musicStatus">Выбери трек или переключай шаги вручную.</p><div class="row"><button id="sync">▶ Под музыку</button><button id="tap">Удар вручную</button></div></details></section>
-<section><h2>Редактор сцены</h2><div class="row"><button id="copy">Загрузить выбранную сцену</button><button id="fresh">Новая сцена</button></div><label class="field">Название<input id="name" maxlength="60" value="Моя сцена"></label><details open><summary>Огни для шага</summary><small>Количество сегментов в демопрофиле условное.</small><div class="bank" id="bank"></div></details><div class="row"><label>Длина шага <input type="number" id="ms" min="100" max="10000" step="50" value="500" style="width:90px"> мс</label><button id="add">Добавить шаг</button><button id="clear">Снять выбор</button></div><small>Пустой шаг задаёт паузу. Кнопка «Выбрать» переносит шаг в редактор огней.</small><div id="steps"></div>
-<div class="row"><button class="accent" id="save">Сохранить сцену</button><button id="export">Скачать JSON</button></div><label class="field">Открыть сцену из JSON<input type="file" accept=".json,application/json" id="import"></label><p role="status" id="feedback"></p></section></div></main>
+<section id="editPane" hidden><h2>Редактор сцены</h2><div class="row"><button id="copy">Загрузить выбранную сцену</button><button id="fresh">Новая сцена</button></div><label class="field">Название<input id="name" maxlength="60" value="Моя сцена"></label><details><summary>Огни для шага</summary><small>Количество сегментов в демопрофиле условное.</small><div class="bank" id="bank"></div></details><div class="row"><label class="slider">Длительность шага <output id="msValue">500 мс</output><input type="range" id="ms" min="100" max="10000" step="1" value="500"></label><button id="add">Добавить шаг</button><button id="clear">Снять выбор</button></div><small>Пустой шаг задаёт паузу. Кнопка «Выбрать» переносит шаг в редактор огней.</small><div id="steps"></div>
+<div class="row"><button class="accent" id="save">Сохранить сцену</button><button id="export">Скачать JSON</button></div><label class="field">Открыть сцену из JSON<input type="file" accept=".json,application/json" id="import"></label></section><p role="status" id="feedback"></p></div></main>
 <script>
 const LightStudio = (function(){const module={exports:{}};
 'use strict';
@@ -97,7 +98,7 @@ class Player {
         const ready = validate(pack);
         const settings = options || {};
         const speed = settings.speed === undefined ? 1 : settings.speed;
-        if (![0.5, 1, 1.5, 2].includes(speed)) throw Error('Неизвестная скорость');
+        if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) throw Error('Неизвестная скорость');
         this.stop();
         this.pack = ready;
         this.loop = !!settings.loop;
@@ -181,17 +182,18 @@ const player = new Player((on,index) => {
 function draw() {
     const ctx = $('map').getContext('2d');
     ctx.clearRect(0,0,640,470);
-    ctx.fillStyle = '#0c191f'; ctx.fillRect(0,0,640,470);
-    ctx.strokeStyle = '#294049'; ctx.lineWidth = 1;
-    for (let i=20;i<640;i+=40) {ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,470);ctx.stroke();}
-    for (let i=20;i<470;i+=40) {ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(640,i);ctx.stroke();}
-    function shape(points,fill,stroke) {
-        ctx.beginPath();points.forEach((p,i) => i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]));
-        ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();
+    const metal = ctx.createLinearGradient(200,0,442,0);
+    ['#292c2f','#93979a','#53565a','#46494c','#9c9fa1','#27292b'].forEach((c,i)=>metal.addColorStop(i/5,c));
+    function contour(d, fill, stroke) {
+        const outline=new Path2D(d);
+        if(fill){ctx.fillStyle=fill;ctx.fill(outline);}
+        if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.stroke(outline);}
     }
-    shape([[250,44],[390,44],[422,76],[433,162],[431,360],[416,416],[389,432],[251,432],[224,416],[209,359],[207,162],[218,76]],'#22363f','#72909c');
-    shape([[250,145],[390,145],[378,192],[262,192]],'#102129','#506975');
-    shape([[260,310],[380,310],[394,353],[246,353]],'#102129','#506975');
+    contour('M320 39 C250 38 223 49 214 90 Q202 161 207 325 Q208 400 230 421 Q245 440 320 440 Q395 440 410 421 Q432 400 433 325 Q438 161 426 90 Q417 49 320 39Z',metal,'#b8bab9');
+    contour('M232 149 Q320 127 408 149 L383 199 Q320 188 257 199Z','#1c2023','#8c9092');
+    contour('M256 305 Q320 317 384 305 L402 356 Q320 373 238 356Z','#222528','#818588');
+    contour('M228 155 Q217 240 226 327 L250 300 L250 201Z M412 155 Q423 240 414 327 L390 300 L390 201Z','#222527','#888c8c');
+    contour('M238 127 Q248 98 263 82 M402 127 Q392 98 377 82 M240 377 Q320 392 400 377',null,'#9b9e9e');
     const coords={drl:[246,67],low:[265,85],high:[288,84],front_turn:[228,97],fog:[224,121],
         mirror:[194,172],puddle:[208,220],welcome:[213,274],tail:[244,392],rear_turn:[224,371],
         brake:[270,405],reverse:[289,386],rear_fog:[230,414],center_stop:[320,351],plate:[320,410]};
@@ -202,8 +204,8 @@ function draw() {
         if(x===undefined){[x,y]=coords[family];if(side==='_r')x=640-x;}
         const lit=active.includes(channel.id);
         const color=family.includes('turn')||family==='mirror'?'#ffbc4b':
-            ['tail','brake','center_stop','rear_fog'].includes(family)?'#ff766e':'#a2ffdf';
-        ctx.save();ctx.fillStyle=lit?color:'#465963';ctx.shadowColor=color;ctx.shadowBlur=lit?14:0;
+            ['tail','brake','center_stop','rear_fog'].includes(family)?'#ff766e':'#f7faff';
+        ctx.save();ctx.fillStyle=lit?color:'#45494b';ctx.shadowColor=color;ctx.shadowBlur=lit?14:0;
         if(channel.segment)ctx.fillRect(x-2,y-2,5,5);else ctx.fillRect(x-8,y-4,16,8);ctx.restore();
     });
     ctx.fillStyle='#9cb5bf';ctx.font='15px system-ui';ctx.textAlign='center';
@@ -245,7 +247,7 @@ function timeline() {
         const title=document.createElement('strong');title.textContent=(i+1)+'. '+s.ms+' мс';
         const lights=document.createElement('small');lights.textContent=s.on.map(id=>channelNames.get(id)).join(' · ')||'Пауза';
         const actions=document.createElement('div');actions.className='row';
-        actions.append(button('Выбрать',()=>{selected=s.on.slice();$('ms').value=s.ms;manual();bank();}),
+        actions.append(button('Выбрать',()=>{selected=s.on.slice();$('ms').value=s.ms;refreshSliders();manual();bank();}),
             button('Заменить',()=>{draft.steps[i]=stepInput();timeline();}));
         if(i>0) actions.append(button('↑',()=>{draft.steps.splice(i-1,0,draft.steps.splice(i,1)[0]);timeline();}));
         if(i+1<draft.steps.length) actions.append(button('↓',()=>{draft.steps.splice(i+1,0,draft.steps.splice(i,1)[0]);timeline();}));
@@ -343,6 +345,22 @@ $('scene').onchange=stop;$('speed').onchange=()=>{player.speed=Number($('speed')
 $('loop').onchange=()=>{player.loop=$('loop').checked;};
 window.addEventListener('pagehide',stop);
 library();bank();timeline();draw();
+
+function refreshSliders() {
+    for(const id of ['speed','ms']){
+        const el=$(id), v=Number(el.value);
+        el.style.setProperty('--fill', (100*(v-el.min)/(el.max-el.min))+'%');
+        $(id+'Value').value=id==='ms'?v+' мс':v.toLocaleString('ru')+'×';
+    }
+}
+$('speed').oninput=()=>{player.speed=Number($('speed').value);refreshSliders();};
+$('ms').oninput=refreshSliders;
+function showEditor(edit){
+    $('editPane').hidden=!edit;$('scenesPane').hidden=edit;
+    $('tabScenes').setAttribute('aria-pressed',String(!edit));$('tabEdit').setAttribute('aria-pressed',String(edit));
+}
+$('tabScenes').onclick=()=>showEditor(false);$('tabEdit').onclick=()=>showEditor(true);
+refreshSliders();
 
 </script>
 </html>

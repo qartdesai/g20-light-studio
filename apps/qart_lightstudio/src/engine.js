@@ -85,7 +85,7 @@ class Player {
         const ready = validate(pack);
         const settings = options || {};
         const speed = settings.speed === undefined ? 1 : settings.speed;
-        if (![0.5, 1, 1.5, 2].includes(speed)) throw Error('Неизвестная скорость');
+        if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) throw Error('Неизвестная скорость');
         this.stop();
         this.pack = ready;
         this.loop = !!settings.loop;

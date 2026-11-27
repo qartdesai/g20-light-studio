@@ -51,6 +51,14 @@ class Panel {
                 this.selected = this.selected.includes(c.id) ? this.selected.filter(x => x !== c.id) : this.selected.concat(c.id);
                 this.frame = this.selected.slice();
             }));
+        } else if (this.page === 'duration' || this.page === 'speed') {
+            const speed = this.page === 'speed';
+            const values = speed ? [0.5,0.75,1,1.25,1.5,1.75,2] : [100,150,250,500,750,1000,2000,5000,10000];
+            values.forEach((v,i) => add((v === (speed ? this.speed : this.ms) ? '●  ' : '○  ') +
+                (speed ? v + '×' : v + ' мс') + '   ' + '━'.repeat(i+1), () => {
+                if(speed){this.speed=v;this.player.speed=v;this.page='home';}
+                else{this.ms=v;this.page='edit';}
+            }));
         } else if (this.page === 'presets') {
             library.forEach(pack => add(pack.name, () => play(pack, false)));
         } else if (this.page === 'slots') {
@@ -70,10 +78,7 @@ class Panel {
             });
             if (this.store.remove) add('Очистить слот ' + this.slot + '…', () => {this.page='confirm';});
             go('Выбрать огни для шага ›', 'channels');
-            add('Длительность · ' + this.ms + ' мс', () => {
-                const times = [150,250,500,750,1000,2000];
-                this.ms = times[(times.indexOf(this.ms) + 1) % times.length];
-            });
+            go('Длительность · ' + this.ms + ' мс ›','duration');
             add('Добавить шаг (' + this.selected.length + ' огней)', () => {
                 if (this.draft.steps.length >= 128) throw Error('Лимит 128 шагов');
                 this.draft.steps.push({ms:this.ms, on:this.selected.slice()});
@@ -106,11 +111,7 @@ class Panel {
             go('Ручной выбор огней ›', 'channels');
             go('Моя сцена · редактор ›', 'edit');
             add('Повтор · ' + (this.loop ? 'вкл.' : 'выкл.'), () => { this.loop = !this.loop; this.player.loop = this.loop; });
-            add('Скорость · ×' + this.speed, () => {
-                const speeds = [0.5,1,1.5,2];
-                this.speed = speeds[(speeds.indexOf(this.speed)+1) % speeds.length];
-                this.player.speed = this.speed;
-            });
+            go('Скорость · ×' + this.speed + ' ›','speed');
             add('Вручную в такт · ' + this.current.name, () => {
                 if (!this.player.active || !this.player.beats) play(this.current, true);
                 else this.player.beat();

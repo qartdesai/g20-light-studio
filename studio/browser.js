@@ -22,17 +22,18 @@ const player = new Player((on,index) => {
 function draw() {
     const ctx = $('map').getContext('2d');
     ctx.clearRect(0,0,640,470);
-    ctx.fillStyle = '#0c191f'; ctx.fillRect(0,0,640,470);
-    ctx.strokeStyle = '#294049'; ctx.lineWidth = 1;
-    for (let i=20;i<640;i+=40) {ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,470);ctx.stroke();}
-    for (let i=20;i<470;i+=40) {ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(640,i);ctx.stroke();}
-    function shape(points,fill,stroke) {
-        ctx.beginPath();points.forEach((p,i) => i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]));
-        ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();
+    const metal = ctx.createLinearGradient(200,0,442,0);
+    ['#292c2f','#93979a','#53565a','#46494c','#9c9fa1','#27292b'].forEach((c,i)=>metal.addColorStop(i/5,c));
+    function contour(d, fill, stroke) {
+        const outline=new Path2D(d);
+        if(fill){ctx.fillStyle=fill;ctx.fill(outline);}
+        if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.stroke(outline);}
     }
-    shape([[250,44],[390,44],[422,76],[433,162],[431,360],[416,416],[389,432],[251,432],[224,416],[209,359],[207,162],[218,76]],'#22363f','#72909c');
-    shape([[250,145],[390,145],[378,192],[262,192]],'#102129','#506975');
-    shape([[260,310],[380,310],[394,353],[246,353]],'#102129','#506975');
+    contour('M320 39 C250 38 223 49 214 90 Q202 161 207 325 Q208 400 230 421 Q245 440 320 440 Q395 440 410 421 Q432 400 433 325 Q438 161 426 90 Q417 49 320 39Z',metal,'#b8bab9');
+    contour('M232 149 Q320 127 408 149 L383 199 Q320 188 257 199Z','#1c2023','#8c9092');
+    contour('M256 305 Q320 317 384 305 L402 356 Q320 373 238 356Z','#222528','#818588');
+    contour('M228 155 Q217 240 226 327 L250 300 L250 201Z M412 155 Q423 240 414 327 L390 300 L390 201Z','#222527','#888c8c');
+    contour('M238 127 Q248 98 263 82 M402 127 Q392 98 377 82 M240 377 Q320 392 400 377',null,'#9b9e9e');
     const coords={drl:[246,67],low:[265,85],high:[288,84],front_turn:[228,97],fog:[224,121],
         mirror:[194,172],puddle:[208,220],welcome:[213,274],tail:[244,392],rear_turn:[224,371],
         brake:[270,405],reverse:[289,386],rear_fog:[230,414],center_stop:[320,351],plate:[320,410]};
@@ -43,8 +44,8 @@ function draw() {
         if(x===undefined){[x,y]=coords[family];if(side==='_r')x=640-x;}
         const lit=active.includes(channel.id);
         const color=family.includes('turn')||family==='mirror'?'#ffbc4b':
-            ['tail','brake','center_stop','rear_fog'].includes(family)?'#ff766e':'#a2ffdf';
-        ctx.save();ctx.fillStyle=lit?color:'#465963';ctx.shadowColor=color;ctx.shadowBlur=lit?14:0;
+            ['tail','brake','center_stop','rear_fog'].includes(family)?'#ff766e':'#f7faff';
+        ctx.save();ctx.fillStyle=lit?color:'#45494b';ctx.shadowColor=color;ctx.shadowBlur=lit?14:0;
         if(channel.segment)ctx.fillRect(x-2,y-2,5,5);else ctx.fillRect(x-8,y-4,16,8);ctx.restore();
     });
     ctx.fillStyle='#9cb5bf';ctx.font='15px system-ui';ctx.textAlign='center';
@@ -86,7 +87,7 @@ function timeline() {
         const title=document.createElement('strong');title.textContent=(i+1)+'. '+s.ms+' мс';
         const lights=document.createElement('small');lights.textContent=s.on.map(id=>channelNames.get(id)).join(' · ')||'Пауза';
         const actions=document.createElement('div');actions.className='row';
-        actions.append(button('Выбрать',()=>{selected=s.on.slice();$('ms').value=s.ms;manual();bank();}),
+        actions.append(button('Выбрать',()=>{selected=s.on.slice();$('ms').value=s.ms;refreshSliders();manual();bank();}),
             button('Заменить',()=>{draft.steps[i]=stepInput();timeline();}));
         if(i>0) actions.append(button('↑',()=>{draft.steps.splice(i-1,0,draft.steps.splice(i,1)[0]);timeline();}));
         if(i+1<draft.steps.length) actions.append(button('↓',()=>{draft.steps.splice(i+1,0,draft.steps.splice(i,1)[0]);timeline();}));
@@ -184,3 +185,19 @@ $('scene').onchange=stop;$('speed').onchange=()=>{player.speed=Number($('speed')
 $('loop').onchange=()=>{player.loop=$('loop').checked;};
 window.addEventListener('pagehide',stop);
 library();bank();timeline();draw();
+
+function refreshSliders() {
+    for(const id of ['speed','ms']){
+        const el=$(id), v=Number(el.value);
+        el.style.setProperty('--fill', (100*(v-el.min)/(el.max-el.min))+'%');
+        $(id+'Value').value=id==='ms'?v+' мс':v.toLocaleString('ru')+'×';
+    }
+}
+$('speed').oninput=()=>{player.speed=Number($('speed').value);refreshSliders();};
+$('ms').oninput=refreshSliders;
+function showEditor(edit){
+    $('editPane').hidden=!edit;$('scenesPane').hidden=edit;
+    $('tabScenes').setAttribute('aria-pressed',String(!edit));$('tabEdit').setAttribute('aria-pressed',String(edit));
+}
+$('tabScenes').onclick=()=>showEditor(false);$('tabEdit').onclick=()=>showEditor(true);
+refreshSliders();
